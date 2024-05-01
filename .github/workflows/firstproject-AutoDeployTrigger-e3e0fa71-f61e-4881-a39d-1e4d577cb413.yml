@@ -1,0 +1,47 @@
+name: Trigger auto deployment for firstproject
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/firstproject-AutoDeployTrigger-e3e0fa71-f61e-4881-a39d-1e4d577cb413.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.FIRSTPROJECT_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.FIRSTPROJECT_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.FIRSTPROJECT_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }} 
+          registryUrl: docker.io
+          registryUsername: ${{ secrets.FIRSTPROJECT_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.FIRSTPROJECT_REGISTRY_PASSWORD }}
+          containerAppName: firstproject
+          resourceGroup: FS3
+          imageToBuild: CarlosRubio91/firstproject:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
